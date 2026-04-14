@@ -512,6 +512,14 @@ const GITHUB_TOKEN = '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';
 const GITHUB_REPO = 'cqzhuao/zzpage'; // 仓库名：用户名/仓库名
 const GITHUB_API = 'https://api.github.com';
 
+// 固定的被评价者信息（直接显示评价框，不需要生成链接）
+const FIXED_TARGET = {
+  name: 'zhuao',
+  avatar: 'https://raw.githubusercontent.com/cqzhuao/zzpage/main/a.jpg',
+  // 固定为同一个 Issue 号码，所有人评价都存这里
+  issueNumber: 1
+};
+
 const PRESET_TAGS = [
   '社恐','社牛','暖男','搞笑女','高冷','话痨',
   '学霸','摸鱼大师','颜值派','才华党',
@@ -774,27 +782,34 @@ function showSuccess(order) {
 
 // ============ 渲染结果 ============
 async function renderResults() {
+  // 使用固定的目标信息
+  targetName = FIXED_TARGET.name;
+  targetAvatar = FIXED_TARGET.avatar;
+
   try {
-    // targetId 就是 GitHub Issue 号码
+    // 尝试获取已有的 Issue
     const res = await fetch(`${GITHUB_API}/repos/${GITHUB_REPO}/issues/${targetId}`, {
       headers: { 'Accept': 'application/vnd.github.v3+json' }
     });
-    if (!res.ok) throw new Error('Issue not found');
-    const issue = await res.json();
-    try {
-      const parsed = JSON.parse(issue.body);
-      targetName = parsed.targetName || '神秘人物';
-      targetAvatar = parsed.targetAvatar || '';
-      allReviews = parsed.reviews || [];
-    } catch {
-      targetName = '神秘人物';
-      targetAvatar = '';
+    if (res.ok) {
+      const issue = await res.json();
+      try {
+        const parsed = JSON.parse(issue.body);
+        allReviews = parsed.reviews || [];
+      } catch {
+        allReviews = [];
+      }
+    } else {
+      // Issue 不存在，创建它
+      await ghCreateIssue(`target:${targetName}:${targetId}`, JSON.stringify({
+        targetName: targetName,
+        targetAvatar: targetAvatar,
+        reviews: []
+      }));
       allReviews = [];
     }
   } catch (e) {
     console.error(e);
-    targetName = '神秘人物';
-    targetAvatar = '';
     allReviews = [];
   }
 
@@ -853,19 +868,13 @@ async function renderResults() {
   });
 }
 
-// ============ 路由 ============
+// ============ 初始化 ============
 async function init() {
-  const to = getParam('to');
+  // 直接显示评价页（不需要生成链接）
+  targetId = FIXED_TARGET.issueNumber;
+  targetName = FIXED_TARGET.name;
+  targetAvatar = FIXED_TARGET.avatar;
 
-  if (!to) {
-    // 创建页
-    $('createPage').classList.remove('hidden');
-    initTags();
-    initStars();
-    return;
-  }
-
-  targetId = to;
   $('reviewPage').classList.remove('hidden');
   $('createPage').classList.add('hidden');
   initTags();
