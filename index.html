@@ -562,7 +562,7 @@ async function ghCreateIssue(title, body) {
   const res = await fetch(`${GITHUB_API}/repos/${GITHUB_REPO}/issues`, {
     method: 'POST',
     headers: {
-      'Authorization': `token ${GITHUB_TOKEN}`,
+      'Authorization': `Bearer ${GITHUB_TOKEN}`,
       'Content-Type': 'application/json',
       'Accept': 'application/vnd.github.v3+json'
     },
@@ -576,7 +576,7 @@ async function ghUpdateIssue(issueNumber, body) {
   const res = await fetch(`${GITHUB_API}/repos/${GITHUB_REPO}/issues/${issueNumber}`, {
     method: 'PATCH',
     headers: {
-      'Authorization': `token ${GITHUB_TOKEN}`,
+      'Authorization': `Bearer ${GITHUB_TOKEN}`,
       'Content-Type': 'application/json',
       'Accept': 'application/vnd.github.v3+json'
     },
