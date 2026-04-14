@@ -507,9 +507,10 @@
 
 <script>
 // ============ 配置 ============
-const LEAN_CLOUD_APP_ID = 'YOUR_APP_ID';
-const LEAN_CLOUD_APP_KEY = 'YOUR_APP_KEY';
-const LEAN_CLOUD_HOST = 'https://your-app.leancloud.cn';
+// GitHub Issues 配置
+const GITHUB_TOKEN = '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';
+const GITHUB_REPO = 'cqzhuao/zzpage'; // 仓库名：用户名/仓库名
+const GITHUB_API = 'https://api.github.com';
 
 const PRESET_TAGS = [
   '社恐','社牛','暖男','搞笑女','高冷','话痨',
@@ -547,62 +548,69 @@ function getShareLink(targetId) {
   return `${location.origin}${location.pathname}?to=${targetId}`;
 }
 
-// ============ LeanCloud API ============
-async function lcPOST(className, data) {
-  const res = await fetch(`${LEAN_CLOUD_HOST}/1.1/classes/${className}`, {
+// ============ GitHub Issues API ============
+// 创建 Issue（用于保存被评价者信息和所有评价）
+async function ghCreateIssue(title, body) {
+  const res = await fetch(`${GITHUB_API}/repos/${GITHUB_REPO}/issues`, {
     method: 'POST',
     headers: {
-      'X-LC-Id': LEAN_CLOUD_APP_ID,
-      'X-LC-Key': LEAN_CLOUD_APP_KEY,
-      'Content-Type': 'application/json'
+      'Authorization': `token ${GITHUB_TOKEN}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/vnd.github.v3+json'
     },
-    body: JSON.stringify(data)
+    body: JSON.stringify({ title, body, labels: ['zz-review'] })
   });
   return res.json();
 }
 
-async function lcGET(className, params = '') {
-  const res = await fetch(`${LEAN_CLOUD_HOST}/1.1/classes/${className}${params}`, {
-    headers: { 'X-LC-Id': LEAN_CLOUD_APP_ID, 'X-LC-Key': LEAN_CLOUD_APP_KEY }
+// 更新 Issue（追加新评价）
+async function ghUpdateIssue(issueNumber, body) {
+  const res = await fetch(`${GITHUB_API}/repos/${GITHUB_REPO}/issues/${issueNumber}`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `token ${GITHUB_TOKEN}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/vnd.github.v3+json'
+    },
+    body: JSON.stringify({ body })
   });
   return res.json();
 }
 
-async function saveTarget(name, avatar) {
-  return lcPOST('Target', {
-    name, avatar,
-    createdAt: new Date().toISOString()
-  });
+// 追加评价到 Issue（targetId 就是 issue 号码）
+async function ghAppendReview(targetId, reviewData) {
+  try {
+    const res = await fetch(`${GITHUB_API}/repos/${GITHUB_REPO}/issues/${targetId}`, {
+      headers: { 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (res.ok) {
+      const issue = await res.json();
+      try {
+        const parsed = JSON.parse(issue.body);
+        parsed.reviews = parsed.reviews || [];
+        parsed.reviews.push(reviewData);
+        await ghUpdateIssue(targetId, JSON.stringify(parsed));
+        return { success: true, count: parsed.reviews.length, issueNumber: targetId };
+      } catch {
+        const newBody = JSON.stringify({ reviews: [reviewData] });
+        await ghUpdateIssue(targetId, newBody);
+        return { success: true, count: 1, issueNumber: targetId };
+      }
+    }
+    throw new Error('Issue not found');
+  } catch (e) {
+    console.error(e);
+    throw e;
+  }
 }
 
-async function getTarget(id) {
-  return lcGET(`Target/${id}`, '');
+// 检查是否已提交（通过查找 body 中的 submitted_ 标记）
+function isSubmitted(targetId) {
+  return localStorage.getItem('submitted_' + targetId) === 'true';
 }
 
-async function getReviews(targetId) {
-  const q = encodeURIComponent(`targetId="${targetId}"`);
-  const r = await lcGET('Review', `?where=${q}&order=-createdAt`);
-  return r.results || [];
-}
-
-async function postReview(data) {
-  return lcPOST('Review', {
-    ...data,
-    createdAt: new Date().toISOString()
-  });
-}
-
-// ============ 本地模式（未配置LeanCloud时）==========
-function isLocalMode() {
-  return LEAN_CLOUD_APP_ID === 'YOUR_APP_ID';
-}
-
-function localSave(key, val) {
-  try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {}
-}
-
-function localLoad(key, def = null) {
-  try { return JSON.parse(localStorage.getItem(key)) || def; } catch(e) { return def; }
+function setSubmitted(targetId) {
+  localStorage.setItem('submitted_' + targetId, 'true');
 }
 
 // ============ 状态 ============
@@ -715,24 +723,17 @@ $('createBtn').addEventListener('click', async () => {
   const avatarImg = $('createAvatar').querySelector('img');
   const avatar = avatarImg ? avatarImg.src : '';
 
-  if (isLocalMode()) {
-    const id = 'local_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
-    localSave('target_' + id, { name, avatar });
-    const link = getShareLink(id);
-    toast('链接已生成！');
-    navigator.clipboard.writeText(link).catch(() => {});
-    location.href = link;
-    return;
-  }
-
   try {
-    const target = await saveTarget(name, avatar);
-    const link = getShareLink(target.objectId);
+    // 用 GitHub Issue 存储数据，标题格式: target:{name}:{timestamp}
+    const title = `target:${name}:${Date.now()}`;
+    const body = JSON.stringify({ targetName: name, targetAvatar: avatar, reviews: [] });
+    const issue = await ghCreateIssue(title, body);
+    const link = getShareLink(issue.number);
     toast('链接已生成，已复制！');
     await navigator.clipboard.writeText(link).catch(() => {});
     location.href = link;
   } catch (err) {
-    toast('生成失败，请检查LeanCloud配置');
+    toast('生成失败，请检查网络或Token配置');
     console.error(err);
   }
 });
@@ -748,21 +749,14 @@ $('submitBtn').addEventListener('click', async () => {
     scores,
     tags: [...selectedTags],
     advice,
-    secretMessage: secret
+    secretMessage: secret,
+    createdAt: new Date().toISOString()
   };
 
-  if (isLocalMode()) {
-    const reviews = localLoad('reviews_' + targetId, []);
-    reviews.push(data);
-    localSave('reviews_' + targetId, reviews);
-    showSuccess(reviews.length);
-    return;
-  }
-
   try {
-    await postReview(data);
-    allReviews = await getReviews(targetId);
-    showSuccess(allReviews.length);
+    const result = await ghAppendReview(targetId, data);
+    setSubmitted(targetId);
+    showSuccess(result.count);
   } catch (err) {
     toast('提交失败，请重试');
     console.error(err);
@@ -780,17 +774,28 @@ function showSuccess(order) {
 
 // ============ 渲染结果 ============
 async function renderResults() {
-  if (isLocalMode()) {
-    const t = localLoad('target_' + targetId, null);
-    if (t) { targetName = t.name; targetAvatar = t.avatar; }
-    allReviews = localLoad('reviews_' + targetId, []);
-  } else {
+  try {
+    // targetId 就是 GitHub Issue 号码
+    const res = await fetch(`${GITHUB_API}/repos/${GITHUB_REPO}/issues/${targetId}`, {
+      headers: { 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (!res.ok) throw new Error('Issue not found');
+    const issue = await res.json();
     try {
-      const [t, r] = await Promise.all([getTarget(targetId), getReviews(targetId)]);
-      targetName = t.name || '神秘人物';
-      targetAvatar = t.avatar || '';
-      allReviews = r;
-    } catch (e) { console.error(e); }
+      const parsed = JSON.parse(issue.body);
+      targetName = parsed.targetName || '神秘人物';
+      targetAvatar = parsed.targetAvatar || '';
+      allReviews = parsed.reviews || [];
+    } catch {
+      targetName = '神秘人物';
+      targetAvatar = '';
+      allReviews = [];
+    }
+  } catch (e) {
+    console.error(e);
+    targetName = '神秘人物';
+    targetAvatar = '';
+    allReviews = [];
   }
 
   $('resultName').textContent = targetName;
@@ -868,15 +873,11 @@ async function init() {
 
   await renderResults();
 
-  // 检查是否已提交（本地）
-  if (isLocalMode()) {
-    const submitted = localLoad('submitted_' + targetId, false);
-    if (submitted) {
-      submitted = true;
-      $('submitCard').classList.add('hidden');
-      $('successCard').classList.remove('hidden');
-      $('reviewOrder').textContent = allReviews.length;
-    }
+  // 检查是否已提交（本地标记）
+  if (isSubmitted(targetId)) {
+    $('submitCard').classList.add('hidden');
+    $('successCard').classList.remove('hidden');
+    $('reviewOrder').textContent = allReviews.length;
   }
 }
 
