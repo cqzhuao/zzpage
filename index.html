@@ -515,7 +515,7 @@ const GITHUB_API = 'https://api.github.com';
 // 固定的被评价者信息（直接显示评价框，不需要生成链接）
 const FIXED_TARGET = {
   name: 'zhuao',
-  avatar: 'https://github.com/cqzhuao/zzpage/raw/main/a.jpg',
+  avatar: 'https://cqzhuao.github.io/zzpage/a.jpg',
   // 固定为同一个 Issue 号码，所有人评价都存这里
   issueNumber: 1
 };
@@ -803,25 +803,40 @@ async function renderResults() {
     const res = await fetch(`${GITHUB_API}/repos/${GITHUB_REPO}/issues/${targetId}`, {
       headers: { 'Accept': 'application/vnd.github.v3+json' }
     });
+    console.log('Issue fetch status:', res.status);
     if (res.ok) {
       const issue = await res.json();
+      console.log('Issue data:', issue);
+      // 检查是否是 Pull Request（不是普通 Issue）
+      if (issue.pull_request) {
+        console.error('Issue #1 is a Pull Request, not an Issue!');
+        toast('配置错误：Issue #1 是 Pull Request，请删除或关闭它');
+        return;
+      }
       try {
         const parsed = JSON.parse(issue.body);
+        console.log('Parsed body:', parsed);
         allReviews = parsed.reviews || [];
-      } catch {
+      } catch (e) {
+        console.error('JSON parse error:', e, 'Raw body:', issue.body);
+        toast('数据格式错误');
         allReviews = [];
       }
-    } else {
+    } else if (res.status === 404) {
       // Issue 不存在，创建它
+      console.log('Issue not found, creating...');
       await ghCreateIssue(`target:${targetName}:${targetId}`, JSON.stringify({
         targetName: targetName,
         targetAvatar: targetAvatar,
         reviews: []
       }));
       allReviews = [];
+    } else {
+      console.error('Unexpected status:', res.status);
+      allReviews = [];
     }
   } catch (e) {
-    console.error(e);
+    console.error('renderResults error:', e);
     allReviews = [];
   }
 
