@@ -582,6 +582,12 @@ async function ghUpdateIssue(issueNumber, body) {
     },
     body: JSON.stringify({ body })
   });
+  console.log('PATCH status:', res.status, 'ok:', res.ok);
+  if (!res.ok) {
+    const text = await res.text();
+    console.error('PATCH failed:', text);
+    throw new Error('PATCH failed: ' + res.status);
+  }
   return res.json();
 }
 
@@ -592,18 +598,23 @@ async function ghAppendReview(targetId, reviewData) {
     const res = await fetch(`${GITHUB_API}/repos/${GITHUB_REPO}/issues/${targetId}`, {
       headers: { 'Accept': 'application/vnd.github.v3+json' }
     });
+    console.log('GET issue status:', res.status);
 
     if (res.ok) {
       const issue = await res.json();
       let parsed;
       try {
-        parsed = JSON.parse(issue.body);
-        if (!Array.isArray(parsed.reviews)) parsed.reviews = [];
+        parsed = issue.body ? JSON.parse(issue.body) : null;
+        if (!parsed || !Array.isArray(parsed.reviews)) parsed = { reviews: [] };
       } catch {
         parsed = { reviews: [] };
       }
+      console.log('Before push, reviews count:', parsed.reviews.length);
       parsed.reviews.push(reviewData);
-      await ghUpdateIssue(targetId, JSON.stringify(parsed));
+      console.log('After push, reviews count:', parsed.reviews.length);
+      const newBody = JSON.stringify(parsed);
+      console.log('Updating issue with body:', newBody);
+      await ghUpdateIssue(targetId, newBody);
       return { success: true, count: parsed.reviews.length, issueNumber: targetId };
     } else if (res.status === 404) {
       // Issue 不存在，创建新 Issue
@@ -613,6 +624,7 @@ async function ghAppendReview(targetId, reviewData) {
         targetAvatar: FIXED_TARGET.avatar,
         reviews: [reviewData]
       });
+      console.log('Creating new issue with body:', body);
       await ghCreateIssue(title, body);
       return { success: true, count: 1, issueNumber: targetId };
     } else {
