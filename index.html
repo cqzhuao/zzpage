@@ -515,7 +515,7 @@ const GITHUB_API = 'https://api.github.com';
 // 固定的被评价者信息（直接显示评价框，不需要生成链接）
 const FIXED_TARGET = {
   name: 'zhuao',
-  avatar: 'https://raw.githubusercontent.com/cqzhuao/zzpage/main/a.jpg',
+  avatar: 'https://github.com/cqzhuao/zzpage/raw/main/a.jpg',
   // 固定为同一个 Issue 号码，所有人评价都存这里
   issueNumber: 1
 };
@@ -588,26 +588,38 @@ async function ghUpdateIssue(issueNumber, body) {
 // 追加评价到 Issue（targetId 就是 issue 号码）
 async function ghAppendReview(targetId, reviewData) {
   try {
+    // 先读取现有 Issue
     const res = await fetch(`${GITHUB_API}/repos/${GITHUB_REPO}/issues/${targetId}`, {
       headers: { 'Accept': 'application/vnd.github.v3+json' }
     });
+
     if (res.ok) {
       const issue = await res.json();
+      let parsed;
       try {
-        const parsed = JSON.parse(issue.body);
-        parsed.reviews = parsed.reviews || [];
-        parsed.reviews.push(reviewData);
-        await ghUpdateIssue(targetId, JSON.stringify(parsed));
-        return { success: true, count: parsed.reviews.length, issueNumber: targetId };
+        parsed = JSON.parse(issue.body);
+        if (!Array.isArray(parsed.reviews)) parsed.reviews = [];
       } catch {
-        const newBody = JSON.stringify({ reviews: [reviewData] });
-        await ghUpdateIssue(targetId, newBody);
-        return { success: true, count: 1, issueNumber: targetId };
+        parsed = { reviews: [] };
       }
+      parsed.reviews.push(reviewData);
+      await ghUpdateIssue(targetId, JSON.stringify(parsed));
+      return { success: true, count: parsed.reviews.length, issueNumber: targetId };
+    } else if (res.status === 404) {
+      // Issue 不存在，创建新 Issue
+      const title = `target:${FIXED_TARGET.name}:${targetId}`;
+      const body = JSON.stringify({
+        targetName: FIXED_TARGET.name,
+        targetAvatar: FIXED_TARGET.avatar,
+        reviews: [reviewData]
+      });
+      await ghCreateIssue(title, body);
+      return { success: true, count: 1, issueNumber: targetId };
+    } else {
+      throw new Error('Failed to fetch issue: ' + res.status);
     }
-    throw new Error('Issue not found');
   } catch (e) {
-    console.error(e);
+    console.error('ghAppendReview error:', e);
     throw e;
   }
 }
