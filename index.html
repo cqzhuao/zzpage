@@ -814,9 +814,9 @@ async function renderResults() {
         return;
       }
       try {
-        const parsed = JSON.parse(issue.body);
+        const parsed = issue.body ? JSON.parse(issue.body) : null;
         console.log('Parsed body:', parsed);
-        allReviews = parsed.reviews || [];
+        allReviews = (parsed && Array.isArray(parsed.reviews)) ? parsed.reviews : [];
       } catch (e) {
         console.error('JSON parse error:', e, 'Raw body:', issue.body);
         toast('数据格式错误');
