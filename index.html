@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>神秘买家评价 ✨ 淘宝式匿名打分</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Inter", "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #0f1117;
+      color: #e8e8e8;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 420px;
+      margin: 0 auto;
+      padding: 24px 16px;
+      padding-top: 48px;
+    }
+
+    /* 标题 */
+    .title {
+      text-align: center;
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #555;
+      font-size: 12px;
+      margin-bottom: 24px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    /* 卡片 */
+    .card {
+      background: #16181f;
+      border: 1px solid #1e2028;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 12px;
+      animation: slideUp 0.3s ease-out;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 头像 */
+    .avatar-section { text-align: center; margin-bottom: 18px; }
+    .avatar-wrap {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      padding: 2px;
+      background: linear-gradient(135deg, #3a7bd5, #00d2ff);
+      display: inline-block;
+      margin-bottom: 8px;
+    }
+    .avatar-inner {
+      width: 100%; height: 100%;
+      border-radius: 50%;
+      background: #16181f;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; overflow: hidden;
+    }
+    .avatar-inner img { width: 100%; height: 100%; object-fit: cover; }
+    .user-name { font-size: 16px; font-weight: 600; color: #fff; }
+    .user-label {
+      font-size: 10px;
+      color: #3a7bd5;
+      background: rgba(58,123,213,0.1);
+      border: 1px solid rgba(58,123,213,0.2);
+      padding: 2px 10px;
+      border-radius: 20px;
+      display: inline-block;
+      margin-top: 6px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    /* 输入 */
+    .input-group { margin-bottom: 12px; }
+    .input-label {
+      font-size: 11px; color: #888;
+      margin-bottom: 6px; display: block;
+      letter-spacing: 1px; text-transform: uppercase;
+    }
+    .input-field {
+      width: 100%; padding: 10px 12px;
+      background: #0f1117;
+      border: 1px solid #2a2a35;
+      border-radius: 8px;
+      font-size: 14px; color: #fff; outline: none;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+    .input-field:focus { border-color: #3a7bd5; }
+    .input-field::placeholder { color: #444; }
+    .avatar-upload { display: flex; align-items: center; gap: 10px; }
+    .upload-btn {
+      background: transparent;
+      border: 1px solid #2a2a35;
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 12px; color: #888;
+      cursor: pointer; white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .upload-btn:hover { border-color: #3a7bd5; color: #3a7bd5; }
+    .upload-preview { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; display: none; }
+
+    /* 分隔标签 */
+    .section-label {
+      font-size: 10px; color: #555;
+      letter-spacing: 2px; text-transform: uppercase;
+      margin-bottom: 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-label::after {
+      content: ""; flex: 1; height: 1px;
+      background: #1e2028;
+    }
+
+    /* 评价维度 */
+    .rating-section { margin-bottom: 16px; }
+    .rating-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .rating-title { font-size: 13px; color: #ccc; }
+    .rating-score { font-size: 11px; color: #3a7bd5; font-weight: 600; }
+    .stars { display: flex; gap: 6px; justify-content: center; }
+    .star {
+      font-size: 24px;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: #2a2a35;
+      user-select: none;
+    }
+    .star.active { color: #3a7bd5; }
+    .star:hover { transform: scale(1.15); }
+    .star.picked { animation: starPop 0.3s ease-out; }
+    @keyframes starPop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.3); }
+      100% { transform: scale(1); }
+    }
+    .rating-labels { display: flex; justify-content: space-between; font-size: 10px; color: #444; margin-top: 3px; }
+
+    /* 标签 */
+    .tag-section { margin-bottom: 14px; }
+    .tag-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .tag-item {
+      padding: 4px 10px;
+      background: #0f1117;
+      border: 1px solid #2a2a35;
+      border-radius: 6px;
+      font-size: 12px; cursor: pointer;
+      transition: all 0.15s;
+      color: #666;
+    }
+    .tag-item:hover { border-color: #3a7bd5; color: #ccc; }
+    .tag-item.selected { background: rgba(58,123,213,0.15); color: #3a7bd5; border-color: #3a7bd5; }
+    .tag-custom { display: flex; gap: 6px; align-items: center; }
+    .tag-custom input {
+      flex: 1; padding: 6px 10px;
+      background: #0f1117;
+      border: 1px solid #2a2a35;
+      border-radius: 6px; font-size: 12px; color: #fff; outline: none;
+    }
+    .tag-custom input:focus { border-color: #3a7bd5; }
+    .tag-custom input::placeholder { color: #444; }
+    .tag-custom button {
+      background: transparent; color: #555;
+      border: 1px solid #2a2a35;
+      padding: 6px 10px; border-radius: 6px;
+      font-size: 12px; cursor: pointer;
+    }
+    .tag-custom button:hover { border-color: #3a7bd5; color: #3a7bd5; }
+
+    /* 文本域 */
+    .advice-section, .secret-section { margin-bottom: 12px; }
+    .advice-title, .secret-title { font-size: 13px; color: #ccc; margin-bottom: 6px; }
+    .advice-sub { font-size: 10px; color: #444; margin-bottom: 6px; }
+    .advice-textarea, .secret-textarea {
+      width: 100%; padding: 10px;
+      background: #0f1117;
+      border: 1px solid #2a2a35;
+      border-radius: 8px; font-size: 13px;
+      resize: none; height: 60px; outline: none;
+      font-family: inherit; color: #fff;
+      transition: border-color 0.2s;
+      line-height: 1.5;
+    }
+    .advice-textarea:focus, .secret-textarea:focus { border-color: #3a7bd5; }
+    .advice-textarea::placeholder, .secret-textarea::placeholder { color: #444; }
+    .char-count { text-align: right; font-size: 10px; color: #444; margin-top: 4px; }
+
+    /* 按钮 */
+    .btn-primary {
+      width: 100%; padding: 12px;
+      background: #3a7bd5;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px; font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.5px;
+    }
+    .btn-primary:hover { background: #2d6bc9; transform: translateY(1px); }
+    .btn-primary:disabled { background: #2a2a35; color: #555; cursor: not-allowed; transform: none; }
+    .btn-ghost {
+      width: 100%; padding: 11px;
+      background: transparent;
+      color: #3a7bd5;
+      border: 1px solid #2a2a35;
+      border-radius: 8px;
+      font-size: 13px; font-weight: 600;
+      cursor: pointer; margin-top: 8px;
+      transition: all 0.2s;
+    }
+    .btn-ghost:hover { border-color: #3a7bd5; }
+    .share-tip { text-align: center; font-size: 10px; color: #333; margin-top: 8px; }
+
+    /* 结果页 */
+    .result-header { text-align: center; margin-bottom: 16px; }
+    .result-badge {
+      display: inline-block;
+      background: rgba(58,123,213,0.1);
+      border: 1px solid rgba(58,123,213,0.2);
+      color: #3a7bd5; padding: 2px 12px;
+      border-radius: 20px; font-size: 10px;
+      font-weight: 600; letter-spacing: 1.5px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+    .result-count { font-size: 11px; color: #444; margin-bottom: 14px; letter-spacing: 0.5px; }
+    .result-count span { color: #3a7bd5; font-weight: 600; }
+
+    /* 平均分 */
+    .avg-section { margin-bottom: 16px; }
+    .avg-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .avg-label { font-size: 12px; color: #666; width: 64px; }
+    .avg-stars { color: #3a7bd5; font-size: 12px; letter-spacing: 1px; }
+    .avg-num { font-size: 14px; font-weight: 600; color: #3a7bd5; margin-left: 4px; }
+    .avg-bar-wrap { flex: 1; height: 3px; background: #1e2028; border-radius: 2px; overflow: hidden; }
+    .avg-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #3a7bd5, #00d2ff);
+      border-radius: 2px;
+      transition: width 0.6s ease-out;
+    }
+
+    /* 标签云 */
+    .tag-cloud { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; justify-content: center; }
+    .tag-cloud .tag-item { background: rgba(58,123,213,0.08); color: #3a7bd5; border-color: rgba(58,123,213,0.2); cursor: default; }
+
+    /* 建议/悄悄话 */
+    .advice-show, .secret-show { margin-bottom: 14px; }
+    .advice-show-title, .secret-show-title {
+      font-size: 12px; color: #555; margin-bottom: 8px;
+      letter-spacing: 0.5px;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .advice-item {
+      background: rgba(0,200,150,0.05);
+      border-left: 2px solid rgba(0,200,150,0.3);
+      padding: 7px 10px; margin-bottom: 5px;
+      border-radius: 0 6px 6px 0;
+      font-size: 12px; color: #7ab;
+      line-height: 1.5;
+    }
+    .secret-item {
+      background: rgba(58,123,213,0.05);
+      border-left: 2px solid rgba(58,123,213,0.3);
+      padding: 7px 10px; margin-bottom: 5px;
+      border-radius: 0 6px 6px 0;
+      font-size: 12px; color: #89a;
+      line-height: 1.5;
+    }
+
+    /* 空状态 */
+    .empty-state { text-align: center; padding: 24px 10px; }
+    .empty-state .emoji { font-size: 32px; margin-bottom: 8px; opacity: 0.3; }
+    .empty-state p { font-size: 12px; color: #333; line-height: 1.8; }
+
+    /* 分隔线 */
+    .divider { height: 1px; background: #1e2028; margin: 14px 0; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(58,123,213,0.9);
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 13px; font-weight: 500;
+      opacity: 0; pointer-events: none;
+      transition: all 0.3s;
+      z-index: 999;
+      letter-spacing: 0.3px;
+    }
+    .toast.show { opacity: 1; }
+
+    /* 成功状态 */
+    .already-reviewed { text-align: center; padding: 20px; }
+    .already-reviewed .emoji { font-size: 36px; margin-bottom: 8px; }
+    .already-reviewed p { font-size: 14px; color: #fff; font-weight: 600; }
+    .already-reviewed .sub { font-size: 11px; color: #555; margin-top: 6px; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ===== 1. 创建页（无to参数）====== -->
+  <div id="createPage">
+    <div class="card">
+      <div class="title">✨ 神秘买家评价 ✨</div>
+      <div class="subtitle">让朋友们来一波淘宝式匿名打分</div>
+
+      <div class="avatar-section">
+        <div class="avatar-wrap">
+          <div class="avatar-inner" id="createAvatar"><span>🙂</span></div>
+        </div>
+        <div class="user-name" id="createNameDisplay">取个昵称</div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">你的昵称</label>
+        <input type="text" class="input-field" id="createName" placeholder="让朋友知道这是给谁打分" maxlength="20">
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">头像（可选）</label>
+        <div class="avatar-upload">
+          <label class="upload-btn" for="avatarInput">📷 选择图片</label>
+          <input type="file" id="avatarInput" accept="image/*" style="display:none">
+          <img class="upload-preview" id="avatarPreview" alt="预览">
+        </div>
+      </div>
+
+      <button class="btn-primary" id="createBtn">🚀 生成专属评价链接</button>
+      <div class="share-tip">生成后可分享到朋友圈 · 完全匿名</div>
+    </div>
+  </div>
+
+  <!-- ===== 2. 评价+结果页（有to参数）====== -->
+  <div id="reviewPage" class="hidden">
+
+    <!-- 结果汇总（始终显示）-->
+    <div class="card" id="resultCard">
+      <div class="result-header">
+        <div class="result-badge">🏆 评价汇总</div>
+        <div class="avatar-wrap" style="width:64px;height:64px;margin:0 auto 8px;">
+          <div class="avatar-inner" id="resultAvatar"><span>🙂</span></div>
+        </div>
+        <div class="user-name" id="resultName">-</div>
+        <div class="user-label" id="resultLabel">神秘人物</div>
+        <div class="result-count" style="margin-top:8px;">共 <span id="reviewCount">0</span> 位神秘买家评价</div>
+      </div>
+
+      <!-- 平均分 -->
+      <div class="avg-section" id="avgSection">
+        <div class="avg-row">
+          <span class="avg-label">🌟 相符度</span>
+          <div class="avg-bar-wrap"><div class="avg-bar" id="bar1" style="width:0%"></div></div>
+          <span class="avg-num" id="avg1">-</span>
+          <span class="avg-stars" id="stars1"></span>
+        </div>
+        <div class="avg-row">
+          <span class="avg-label">🌟 态度</span>
+          <div class="avg-bar-wrap"><div class="avg-bar" id="bar2" style="width:0%"></div></div>
+          <span class="avg-num" id="avg2">-</span>
+          <span class="avg-stars" id="stars2"></span>
+        </div>
+        <div class="avg-row">
+          <span class="avg-label">🌟 速度</span>
+          <div class="avg-bar-wrap"><div class="avg-bar" id="bar3" style="width:0%"></div></div>
+          <span class="avg-num" id="avg3">-</span>
+          <span class="avg-stars" id="stars3"></span>
+        </div>
+      </div>
+
+      <!-- 标签云 -->
+      <div class="tag-cloud" id="tagCloud"></div>
+
+      <!-- 建议 -->
+      <div class="advice-show" id="adviceShow">
+        <div class="advice-show-title">💡 送给 TA 的一句话</div>
+        <div id="adviceItems"></div>
+      </div>
+
+      <!-- 悄悄话 -->
+      <div class="secret-show" id="secretShow">
+        <div class="secret-show-title">💬 悄悄话 <span id="secretCnt"></span></div>
+        <div id="secretItems"></div>
+      </div>
+    </div>
+
+    <!-- 提交评价 -->
+    <div class="card" id="submitCard">
+      <div class="title" style="font-size:18px;">🛒 我也来评价 TA</div>
+      <div class="subtitle" style="margin-bottom:16px;">匿名提交，放心说真话</div>
+
+      <!-- 外貌 -->
+      <div class="rating-section">
+        <div class="rating-header">
+          <span class="rating-title">🌟 外貌与描述相符</span>
+          <span class="rating-score" id="s1Text">点击评分</span>
+        </div>
+        <div class="stars" id="stars1Container">
+          <span class="star" data-dim="appearance" data-val="1">☆</span>
+          <span class="star" data-dim="appearance" data-val="2">☆</span>
+          <span class="star" data-dim="appearance" data-val="3">☆</span>
+          <span class="star" data-dim="appearance" data-val="4">☆</span>
+          <span class="star" data-dim="appearance" data-val="5">☆</span>
+        </div>
+        <div class="rating-labels"><span>货不对板</span><span>完美匹配</span></div>
+      </div>
+
+      <!-- 态度 -->
+      <div class="rating-section">
+        <div class="rating-header">
+          <span class="rating-title">🌟 聊天服务态度</span>
+          <span class="rating-score" id="s2Text">点击评分</span>
+        </div>
+        <div class="stars" id="stars2Container">
+          <span class="star" data-dim="attitude" data-val="1">☆</span>
+          <span class="star" data-dim="attitude" data-val="2">☆</span>
+          <span class="star" data-dim="attitude" data-val="3">☆</span>
+          <span class="star" data-dim="attitude" data-val="4">☆</span>
+          <span class="star" data-dim="attitude" data-val="5">☆</span>
+        </div>
+        <div class="rating-labels"><span>态度恶劣</span><span>超级暖心</span></div>
+      </div>
+
+      <!-- 速度 -->
+      <div class="rating-section">
+        <div class="rating-header">
+          <span class="rating-title">🌟 回复消息速度</span>
+          <span class="rating-score" id="s3Text">点击评分</span>
+        </div>
+        <div class="stars" id="stars3Container">
+          <span class="star" data-dim="speed" data-val="1">☆</span>
+          <span class="star" data-dim="speed" data-val="2">☆</span>
+          <span class="star" data-dim="speed" data-val="3">☆</span>
+          <span class="star" data-dim="speed" data-val="4">☆</span>
+          <span class="star" data-dim="speed" data-val="5">☆</span>
+        </div>
+        <div class="rating-labels"><span>已读不回</span><span>秒回狂魔</span></div>
+      </div>
+
+      <!-- 标签 -->
+      <div class="tag-section">
+        <div class="tag-title">🏷️ 贴标签（选1-3个）</div>
+        <div class="tag-grid" id="tagGrid"></div>
+        <div class="tag-custom">
+          <input type="text" id="customTagInput" placeholder="自定义标签..." maxlength="8">
+          <button type="button" id="addCustomTagBtn">添加</button>
+        </div>
+      </div>
+
+      <!-- 建议 -->
+      <div class="advice-section">
+        <div class="advice-title">💡 送给 TA 的一句话</div>
+        <div class="advice-sub">一句鼓励、一句吐槽、或者任何想说的</div>
+        <textarea class="advice-textarea" id="adviceInput" placeholder="比如："你很棒"、"少熬夜"、"做自己就好"..." maxlength="200"></textarea>
+        <div class="char-count"><span id="adviceCount">0</span>/200</div>
+      </div>
+
+      <!-- 悄悄话 -->
+      <div class="secret-section">
+        <div class="secret-title">💬 匿名悄悄话（可选）</div>
+        <textarea class="secret-textarea" id="secretInput" placeholder="想说又不敢当面说的话..." maxlength="200"></textarea>
+        <div class="char-count"><span id="secretCount">0</span>/200</div>
+      </div>
+
+      <button class="btn-primary" id="submitBtn" disabled>🐵 提交评价</button>
+    </div>
+
+    <!-- 提交后显示 -->
+    <div class="card hidden" id="successCard">
+      <div class="already-reviewed">
+        <div class="emoji">🎉</div>
+        <p>评价成功！</p>
+        <div class="sub">你是第 <span id="reviewOrder">?</span> 位神秘买家</div>
+      </div>
+      <div class="divider"></div>
+      <button class="btn-ghost" id="shareBtn">📤 分享给朋友让他们也来评价</button>
+      <div class="share-tip" id="shareTip"></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ 配置 ============
+const LEAN_CLOUD_APP_ID = 'YOUR_APP_ID';
+const LEAN_CLOUD_APP_KEY = 'YOUR_APP_KEY';
+const LEAN_CLOUD_HOST = 'https://your-app.leancloud.cn';
+
+const PRESET_TAGS = [
+  '社恐','社牛','暖男','搞笑女','高冷','话痨',
+  '学霸','摸鱼大师','颜值派','才华党',
+  '人间清醒','小太阳','恋爱脑','干饭人',
+  '剁手党','时间管理大师','夜猫子','早起鸟',
+  '直球','心机重'
+];
+
+// ============ 工具函数 ============
+const $ = id => document.getElementById(id);
+
+function toast(msg, ms = 2000) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), ms);
+}
+
+function makeStars(n) {
+  return '★'.repeat(n) + '☆'.repeat(5 - n);
+}
+
+function getParam(name) {
+  return new URLSearchParams(location.search).get(name);
+}
+
+function avatarHTML(src, fallback) {
+  return src && src.startsWith('data:')
+    ? `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+    : `<span style="color:#FF6B6B;font-size:34px;">${fallback}</span>`;
+}
+
+function getShareLink(targetId) {
+  return `${location.origin}${location.pathname}?to=${targetId}`;
+}
+
+// ============ LeanCloud API ============
+async function lcPOST(className, data) {
+  const res = await fetch(`${LEAN_CLOUD_HOST}/1.1/classes/${className}`, {
+    method: 'POST',
+    headers: {
+      'X-LC-Id': LEAN_CLOUD_APP_ID,
+      'X-LC-Key': LEAN_CLOUD_APP_KEY,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  });
+  return res.json();
+}
+
+async function lcGET(className, params = '') {
+  const res = await fetch(`${LEAN_CLOUD_HOST}/1.1/classes/${className}${params}`, {
+    headers: { 'X-LC-Id': LEAN_CLOUD_APP_ID, 'X-LC-Key': LEAN_CLOUD_APP_KEY }
+  });
+  return res.json();
+}
+
+async function saveTarget(name, avatar) {
+  return lcPOST('Target', {
+    name, avatar,
+    createdAt: new Date().toISOString()
+  });
+}
+
+async function getTarget(id) {
+  return lcGET(`Target/${id}`, '');
+}
+
+async function getReviews(targetId) {
+  const q = encodeURIComponent(`targetId="${targetId}"`);
+  const r = await lcGET('Review', `?where=${q}&order=-createdAt`);
+  return r.results || [];
+}
+
+async function postReview(data) {
+  return lcPOST('Review', {
+    ...data,
+    createdAt: new Date().toISOString()
+  });
+}
+
+// ============ 本地模式（未配置LeanCloud时）==========
+function isLocalMode() {
+  return LEAN_CLOUD_APP_ID === 'YOUR_APP_ID';
+}
+
+function localSave(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {}
+}
+
+function localLoad(key, def = null) {
+  try { return JSON.parse(localStorage.getItem(key)) || def; } catch(e) { return def; }
+}
+
+// ============ 状态 ============
+let scores = { appearance: 0, attitude: 0, speed: 0 };
+let selectedTags = [];
+let targetId = null;
+let targetName = '神秘人物';
+let targetAvatar = '';
+let allReviews = [];
+let submitted = false;
+
+// ============ 星星交互 ============
+function initStars() {
+  document.querySelectorAll('.star').forEach(star => {
+    star.addEventListener('click', () => {
+      const dim = star.dataset.dim;
+      const val = parseInt(star.dataset.val);
+      scores[dim] = val;
+
+      // 更新该维度所有星星
+      document.querySelectorAll(`.star[data-dim="${dim}"]`).forEach((s, i) => {
+        s.classList.toggle('active', i < val);
+        s.textContent = i < val ? '★' : '☆';
+      });
+
+      const labels = ['', '差评😤', '一般😐', '还行🙂', '好评😊', '超赞😍'];
+      const map = { appearance: 's1', attitude: 's2', speed: 's3' };
+      $(`${map[dim]}Text`).textContent = labels[val];
+
+      star.classList.add('picked');
+      setTimeout(() => star.classList.remove('picked'), 300);
+      updateSubmitBtn();
+    });
+  });
+}
+
+// ============ 标签 ============
+function initTags() {
+  const grid = $('tagGrid');
+  grid.innerHTML = '';
+  PRESET_TAGS.forEach(tag => {
+    const el = document.createElement('span');
+    el.className = 'tag-item';
+    el.textContent = tag;
+    el.addEventListener('click', () => toggleTag(el, tag));
+    grid.appendChild(el);
+  });
+}
+
+function toggleTag(el, tag) {
+  if (el.classList.contains('selected')) {
+    el.classList.remove('selected');
+    selectedTags = selectedTags.filter(t => t !== tag);
+  } else if (selectedTags.length < 3) {
+    el.classList.add('selected');
+    selectedTags.push(tag);
+  }
+  updateSubmitBtn();
+}
+
+function addCustomTag() {
+  const input = $('customTagInput');
+  const tag = input.value.trim();
+  if (tag && !selectedTags.includes(tag) && selectedTags.length < 3) {
+    selectedTags.push(tag);
+    const el = document.createElement('span');
+    el.className = 'tag-item selected';
+    el.textContent = tag;
+    el.addEventListener('click', () => toggleTag(el, tag));
+    $('tagGrid').appendChild(el);
+  }
+  input.value = '';
+}
+
+$('addCustomTagBtn').addEventListener('click', addCustomTag);
+$('customTagInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addCustomTag(); } });
+
+// ============ 提交按钮状态 ============
+function updateSubmitBtn() {
+  const starsOK = scores.appearance > 0 && scores.attitude > 0 && scores.speed > 0;
+  const tagsOK = selectedTags.length > 0;
+  $('submitBtn').disabled = !(starsOK && tagsOK);
+}
+
+// ============ 头像预览 ============
+$('avatarInput').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    $('createAvatar').innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+    $('createNameDisplay').textContent = $('createName').value || '取个昵称';
+  };
+  reader.readAsDataURL(file);
+});
+
+$('createName').addEventListener('input', e => {
+  $('createNameDisplay').textContent = e.target.value || '取个昵称';
+});
+
+// ============ 建议/悄悄话 字数 ============
+$('adviceInput').addEventListener('input', e => { $('adviceCount').textContent = e.target.value.length; });
+$('secretInput').addEventListener('input', e => { $('secretCount').textContent = e.target.value.length; });
+
+// ============ 生成链接 ============
+$('createBtn').addEventListener('click', async () => {
+  const name = $('createName').value.trim();
+  if (!name) { toast('请输入昵称'); return; }
+
+  const avatarImg = $('createAvatar').querySelector('img');
+  const avatar = avatarImg ? avatarImg.src : '';
+
+  if (isLocalMode()) {
+    const id = 'local_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+    localSave('target_' + id, { name, avatar });
+    const link = getShareLink(id);
+    toast('链接已生成！');
+    navigator.clipboard.writeText(link).catch(() => {});
+    location.href = link;
+    return;
+  }
+
+  try {
+    const target = await saveTarget(name, avatar);
+    const link = getShareLink(target.objectId);
+    toast('链接已生成，已复制！');
+    await navigator.clipboard.writeText(link).catch(() => {});
+    location.href = link;
+  } catch (err) {
+    toast('生成失败，请检查LeanCloud配置');
+    console.error(err);
+  }
+});
+
+// ============ 提交评价 ============
+$('submitBtn').addEventListener('click', async () => {
+  if (submitted) return;
+  const advice = $('adviceInput').value.trim();
+  const secret = $('secretInput').value.trim();
+
+  const data = {
+    targetId,
+    scores,
+    tags: [...selectedTags],
+    advice,
+    secretMessage: secret
+  };
+
+  if (isLocalMode()) {
+    const reviews = localLoad('reviews_' + targetId, []);
+    reviews.push(data);
+    localSave('reviews_' + targetId, reviews);
+    showSuccess(reviews.length);
+    return;
+  }
+
+  try {
+    await postReview(data);
+    allReviews = await getReviews(targetId);
+    showSuccess(allReviews.length);
+  } catch (err) {
+    toast('提交失败，请重试');
+    console.error(err);
+  }
+});
+
+function showSuccess(order) {
+  submitted = true;
+  $('submitCard').classList.add('hidden');
+  $('successCard').classList.remove('hidden');
+  $('reviewOrder').textContent = order;
+  $('shareTip').textContent = location.href;
+  toast('评价成功！🎉');
+}
+
+// ============ 渲染结果 ============
+async function renderResults() {
+  if (isLocalMode()) {
+    const t = localLoad('target_' + targetId, null);
+    if (t) { targetName = t.name; targetAvatar = t.avatar; }
+    allReviews = localLoad('reviews_' + targetId, []);
+  } else {
+    try {
+      const [t, r] = await Promise.all([getTarget(targetId), getReviews(targetId)]);
+      targetName = t.name || '神秘人物';
+      targetAvatar = t.avatar || '';
+      allReviews = r;
+    } catch (e) { console.error(e); }
+  }
+
+  $('resultName').textContent = targetName;
+  $('resultAvatar').innerHTML = avatarHTML(targetAvatar, '🙂');
+  $('reviewCount').textContent = allReviews.length;
+
+  if (allReviews.length === 0) {
+    $('avgSection').innerHTML = `<div class="empty-state"><div class="emoji">🤔</div><p>还没有人评价<br>快把链接分享出去！</p></div>`;
+    $('tagCloud').innerHTML = '';
+    $('adviceItems').innerHTML = '<div style="color:#ccc;font-size:12px;text-align:center;padding:8px">暂无建议</div>';
+    $('secretItems').innerHTML = '';
+    return;
+  }
+
+  const cnt = allReviews.length;
+  const avg = dim => (allReviews.reduce((s, r) => s + r.scores[dim], 0) / cnt).toFixed(1);
+  const rnd = dim => Math.round(allReviews.reduce((s, r) => s + r.scores[dim], 0) / cnt);
+
+  ['1','2','3'].forEach((n, i) => {
+    const dims = ['appearance','attitude','speed'];
+    const d = dims[i];
+    setTimeout(() => { $(`bar${n}`).style.width = (+avg(d) / 5 * 100) + '%'; }, 100 * i);
+    $(`avg${n}`).textContent = avg(d);
+    $(`stars${n}`).textContent = makeStars(rnd(d));
+  });
+
+  // 标签云
+  const tagCnt = {};
+  allReviews.forEach(r => (r.tags || []).forEach(t => tagCnt[t] = (tagCnt[t] || 0) + 1));
+  const topTags = Object.entries(tagCnt).sort((a,b) => b[1]-a[1]).slice(0, 8);
+  $('tagCloud').innerHTML = topTags.map(([t]) => `<span class="tag-item">${t}</span>`).join('');
+
+  // 建议
+  const advices = allReviews.filter(r => r.advice);
+  $('secretCnt').textContent = `(${allReviews.filter(r => r.secretMessage).length})`;
+  if (advices.length) {
+    $('adviceItems').innerHTML = advices.map(r => `<div class="advice-item">${r.advice}</div>`).join('');
+  } else {
+    $('adviceItems').innerHTML = '<div style="color:#ccc;font-size:12px;text-align:center;padding:8px">暂无建议</div>';
+  }
+
+  // 悄悄话
+  const secrets = allReviews.filter(r => r.secretMessage);
+  if (secrets.length) {
+    $('secretItems').innerHTML = secrets.map(r => `<div class="secret-item">${r.secretMessage}</div>`).join('');
+  } else {
+    $('secretItems').innerHTML = '<div style="color:#ccc;font-size:12px;text-align:center;padding:8px">暂无悄悄话</div>';
+  }
+
+  // 分享按钮
+  $('shareBtn') && ($('shareBtn').onclick = () => {
+    const link = getShareLink(targetId);
+    navigator.clipboard.writeText(`✨ 给我来一波淘宝式匿名打分！\n${link}`).catch(() => {});
+    toast('已复制，快去分享！');
+  });
+}
+
+// ============ 路由 ============
+async function init() {
+  const to = getParam('to');
+
+  if (!to) {
+    // 创建页
+    $('createPage').classList.remove('hidden');
+    initTags();
+    initStars();
+    return;
+  }
+
+  targetId = to;
+  $('reviewPage').classList.remove('hidden');
+  $('createPage').classList.add('hidden');
+  initTags();
+  initStars();
+
+  await renderResults();
+
+  // 检查是否已提交（本地）
+  if (isLocalMode()) {
+    const submitted = localLoad('submitted_' + targetId, false);
+    if (submitted) {
+      submitted = true;
+      $('submitCard').classList.add('hidden');
+      $('successCard').classList.remove('hidden');
+      $('reviewOrder').textContent = allReviews.length;
+    }
+  }
+}
+
+init();
+</script>
+</body>
+</html>
